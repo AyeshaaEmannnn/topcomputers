@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ file.title }} - File Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% load static %}
+  <style>
+    .fade-in { animation: fadeIn 0.5s ease-in-out; }
+    @keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
+
+<!-- NAVBAR -->
+<nav class="bg-gradient-to-r from-cyan-400 to-cyan-500 h-14 flex items-center px-4 shadow">
+  <div class="flex justify-between items-center w-full">
+    <img src="{% static 'images/logo1.png' %}" alt="Logo" class="h-10 md:h-12 object-contain">
+
+    <div class="hidden md:flex space-x-6 flex-1 justify-center">
+      <a href="/home/" class="text-white transition hover:-translate-y-0.5 hover:text-cyan-200">Home</a>
+      <a href="/home/#files" class="text-white transition hover:-translate-y-0.5 hover:text-cyan-200">Files</a>
+      <a href="/home/#about" class="text-white transition hover:-translate-y-0.5 hover:text-cyan-200">About</a>
+    </div>
+
+    <div class="flex items-center space-x-4">
+      <span class="text-white hidden md:inline">Hello, {{ request.user.first_name|default:request.user.username }}</span>
+      <a href="{% url 'logout' %}" class="text-white font-semibold hover:text-cyan-200">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="max-w-6xl mx-auto p-6">
+
+  <!-- MESSAGES -->
+  {% if messages %}
+  <div class="mb-6">
+    {% for message in messages %}
+    <div class="p-4 rounded-lg font-medium 
+      {% if 'error' in message.tags %}bg-red-100 text-red-700
+      {% elif 'success' in message.tags %}bg-green-100 text-green-700
+      {% else %}bg-blue-100 text-blue-700{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <a href="/home/" class="text-cyan-600 hover:text-cyan-800 mb-6 inline-block font-semibold">← Back to Files</a>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 fade-in">
+
+    <!-- LEFT MAIN -->
+    <div class="lg:col-span-2">
+      <div class="bg-white rounded-xl shadow-xl p-8">
+
+        <!-- PREVIEW -->
+        <div class="mb-8">
+          {% if file.is_image %}
+            <img src="{{ file.file.url }}" alt="{{ file.title }}" class="w-full h-96 object-cover rounded-lg shadow-lg"/>
+          {% else %}
+            <div class="w-full h-96 bg-gradient-to-br from-gray-300 to-gray-400 rounded-lg flex items-center justify-center shadow-lg">
+              <div class="text-center">
+                <div class="text-6xl mb-4">📄</div>
+                <p class="text-gray-700 font-semibold">{{ file.file_extension }}</p>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- TITLE -->
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-4">{{ file.title }}</h1>
+
+        <!-- STATS -->
+        <div class="flex gap-6 mb-6 flex-wrap">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">❤️</span>
+            <span class="text-xl font-semibold text-gray-700">{{ file.likes_count }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">💬</span>
+            <span class="text-xl font-semibold text-gray-700">{{ comments.count }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📦</span>
+            <span class="text-lg text-gray-700">{{ file.file_size_mb }} MB</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📅</span>
+            <span class="text-lg text-gray-700">{{ file.uploaded_at|date:"M d, Y" }}</span>
+          </div>
+        </div>
+
+        <!-- LIKE BUTTON -->
+        <button data-file-id="{{ file.id }}" onclick="likeFile(this)"
+          class="px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2
+          {% if user_liked %}bg-red-100 text-red-600{% else %}bg-gray-100 text-gray-600{% endif %}">
+          ❤️ {% if user_liked %}Unlike{% else %}Like{% endif %}
+        </button>
+
+        <!-- DESCRIPTION -->
+        {% if file.description %}
+        <div class="bg-gray-50 p-6 rounded-lg mt-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">Description</h3>
+          <p class="text-gray-700">{{ file.description }}</p>
+        </div>
+        {% endif %}
+
+        <!-- DOWNLOAD -->
+        <div class="mt-8">
+          <a href="{{ file.file.url }}" download="{{ file.title }}"
+            class="w-full inline-block px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-semibold text-center hover:from-green-600 hover:to-emerald-600 focus:outline-none focus:ring-4 focus:ring-green-300 transition duration-200">
+            ⬇️ Download File
+          </a>
+        </div>
+
+        <!-- COMMENTS -->
+        <div class="border-t-2 border-gray-200 pt-8 mt-10">
+          <h2 class="text-2xl font-bold mb-6">💬 Comments ({{ comments.count }})</h2>
+
+          <!-- ADD COMMENT -->
+          <form method="POST" action="{% url 'add_comment' file.id %}" class="mb-8 bg-gray-50 p-6 rounded-lg">
+            {% csrf_token %}
+            <textarea name="comment_text" placeholder="Write a comment..." rows="4" required
+              class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 resize-none"></textarea>
+            <button type="submit" class="mt-3 w-full px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition font-semibold">
+              Post Comment
+            </button>
+          </form>
+
+          <!-- COMMENT LIST -->
+          <div class="space-y-4">
+            {% if comments %}
+              {% for comment in comments %}
+              <div class="bg-gray-50 p-4 rounded-lg border">
+
+                <div class="flex justify-between mb-2">
+                  <h4 class="font-semibold">{{ comment.user.first_name|default:comment.user.username }}</h4>
+                  <span class="text-xs text-gray-500">{{ comment.created_at|date:"M d, Y H:i" }}</span>
+                </div>
+
+                <p class="text-gray-700 mb-3">{{ comment.comment_text }}</p>
+
+                <!-- REPLY -->
+                <details class="cursor-pointer">
+                  <summary class="text-sm text-cyan-600 hover:text-cyan-800 font-semibold">💬 Reply</summary>
+                  <form method="POST" action="{% url 'add_comment' file.id %}" class="mt-3 bg-white p-3 rounded-lg border border-cyan-200">
+                    {% csrf_token %}
+                    <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                    <textarea name="comment_text" placeholder="Write a reply..." rows="2" required class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"></textarea>
+                    <button type="submit" class="mt-2 px-4 py-1 bg-cyan-500 text-white rounded text-sm hover:bg-cyan-600 transition">
+                      Reply
+                    </button>
+                  </form>
+                </details>
+
+                <!-- REPLIES -->
+                {% if comment.replies.exists %}
+                <div class="mt-4 ml-4 border-l-2 border-cyan-300 pl-4 space-y-3">
+                  {% for reply in comment.replies.all %}
+                  <div class="bg-white p-3 rounded-lg">
+                    <div class="flex justify-between mb-2">
+                      <h5 class="font-semibold">{{ reply.user.first_name|default:reply.user.username }}</h5>
+                      <span class="text-xs text-gray-500">{{ reply.created_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <p class="text-gray-700 text-sm">{{ reply.comment_text }}</p>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+
+              </div>
+              {% endfor %}
+            {% else %}
+              <p class="text-gray-500 text-center py-8">No comments yet.</p>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="lg:col-span-1">
+      <div class="bg-white rounded-xl shadow-xl p-8 sticky top-6">
+        <h3 class="text-xl font-bold mb-4">📌 File Info</h3>
+
+        <div class="space-y-4">
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <p class="text-sm text-gray-600">File Type</p>
+            <p class="font-semibold">{{ file.file_type }}</p>
+          </div>
+
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <p class="text-sm text-gray-600">File Size</p>
+            <p class="font-semibold">{{ file.file_size_mb }} MB</p>
+          </div>
+
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <p class="text-sm text-gray-600">Uploaded On</p>
+            <p class="font-semibold">{{ file.uploaded_at|date:"M d, Y" }}</p>
+          </div>
+
+          <div class="bg-cyan-50 p-4 rounded-lg text-center">
+            <p class="text-sm text-cyan-600">👥 Interactions</p>
+            <p class="text-3xl font-bold text-cyan-600">{{ file.likes_count|add:comments.count }}</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="bg-gray-800 text-white mt-16 py-8 text-center">
+  <p class="text-gray-300">&copy; 2026 TopComputers</p>
+  <p class="text-gray-400 text-sm">Your trusted file management platform</p>
+</footer>
+
+<!-- LIKE SCRIPT -->
+<script>
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+async function likeFile(btn) {
+  const fileId = btn.dataset.fileId;
+
+  if (!fileId) {
+    alert("File ID missing!");
+    return;
+  }
+
+  try {
+    const response = await fetch(`/like/${fileId}/`, {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": getCookie("csrftoken"),
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+
+    if (!response.ok) {
+      alert(`Error: ${response.status}`);
+      return;
+    }
+
+    const data = await response.json();
+    if (data.success) {
+      location.reload();
+    } else {
+      alert("Failed to like file");
+    }
+  } catch (error) {
+    console.error("Like error:", error);
+    alert(`Error: ${error.message}`);
+  }
+}
+</script>
+
+</body>
+</html>

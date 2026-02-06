@@ -1,0 +1,324 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign up | TopComputers</title>
+
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+        }
+        header {
+            position: fixed;
+            top:0; left:0; right:0;
+            background: #00a8e8;
+            color: white;
+            padding: 12px 20px;
+            z-index: 10;
+        }
+        .logo-header img { height:42px; width:auto; object-fit:contain; }
+
+        main { width:100%; max-width:420px; margin-top:90px; }
+
+        .card {
+            background:white;
+            border-radius:12px;
+            box-shadow:0 4px 20px rgba(0,0,0,0.08);
+            padding:2.5rem 1.8rem;
+            text-align:center;
+        }
+
+        h1 { font-size:1.9rem; margin-bottom:0.5rem; color:#222; }
+        .subtitle { color:#666; font-size:0.95rem; margin-bottom:2rem; }
+
+        .form-group {
+            margin-bottom:1.4rem;
+            text-align:left;
+            position:relative;
+        }
+
+        label {
+            display:block;
+            margin-bottom:0.4rem;
+            font-size:0.9rem;
+            color:#444;
+            font-weight:500;
+        }
+
+        input {
+            width:100%;
+            padding:12px 14px;
+            border:1px solid #d1d5db;
+            border-radius:8px;
+            font-size:1rem;
+        }
+
+        input:focus {
+            outline:none;
+            border-color:#00a8e8;
+            box-shadow:0 0 0 3px rgba(0,168,232,0.15);
+        }
+
+        .password-wrapper { position:relative; }
+        .toggle-password {
+            position:absolute;
+            right:14px;
+            top:50%;
+            transform:translateY(-50%);
+            background:none;
+            border:none;
+            font-size:1.2rem;
+            cursor:pointer;
+            color:#777;
+        }
+
+        #password-strength {
+            margin-top:0.6rem;
+            font-size:0.84rem;
+            font-weight:500;
+        }
+
+        .weak   { color:#e74c3c; }
+        .medium { color:#f39c12; }
+        .strong { color:#2ecc71; }
+        .very-strong { color:#27ae60; }
+
+        .error-msg {
+            color:#e74c3c;
+            font-size:0.82rem;
+            margin-top:0.5rem;
+            min-height:1.2em;
+        }
+
+        .requirements {
+            font-size:0.82rem;
+            color:#555;
+            margin-top:0.5rem;
+            line-height:1.5;
+        }
+
+        .btn {
+            width:100%;
+            padding:14px;
+            background:#4caf50;
+            color:white;
+            border:none;
+            border-radius:50px;
+            font-size:1.05rem;
+            font-weight:600;
+            cursor:pointer;
+            margin-top:1.2rem;
+            opacity:1;
+            transition:opacity 0.2s;
+        }
+
+        .btn:disabled {
+            background:#95a5a6;
+            cursor:not-allowed;
+            opacity:0.7;
+        }
+
+        .login-link {
+            margin-top:1.5rem;
+            font-size:0.95rem;
+            color:#555;
+        }
+
+        .login-link a { color:#0069d9; text-decoration:none; font-weight:500; }
+        .login-link a:hover { text-decoration:underline; }
+
+        @media (max-width:480px) {
+            .card { padding:2rem 1.4rem; }
+            h1 { font-size:1.7rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo-header">
+        <img src="{% static 'images/logo1.png' %}" alt="TopComputers Logo">
+    </div>
+</header>
+
+<main>
+    <div class="card">
+        <h1>Sign up</h1>
+        <div class="subtitle">Create your account</div>
+
+        {% if messages %}
+        <div style="margin-bottom: 1.5rem;">
+            {% for message in messages %}
+            <div style="padding: 12px 14px; border-radius: 8px; margin-bottom: 10px; font-size: 0.95rem; font-weight: 500; {% if message.tags %}{% if 'error' in message.tags %}background: #fee; color: #c33;{% else %}background: #efe; color: #3c3;{% endif %}{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="POST" id="signupForm" action="{% url 'signup_user' %}">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="first_name">Full Name</label>
+                <input type="text" id="first_name" name="first_name" placeholder="Enter your full name" required autocomplete="name">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-wrapper">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Minimum 8 characters"
+                        required 
+                        autocomplete="new-password"
+                    >
+                    <button type="button" class="toggle-password" id="togglePassword">👁️</button>
+                </div>
+
+                <div id="password-strength"></div>
+                <div id="password-error" class="error-msg"></div>
+
+                <div class="requirements">
+                    Must contain:<br>
+                    • 8+ characters<br>
+                    • 1 uppercase letter<br>
+                    • 1 number<br>
+                    • 1 special character (!@#$%^&*)
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <div class="password-wrapper">
+                    <input 
+                        type="password" 
+                        id="confirm_password" 
+                        name="confirm_password" 
+                        placeholder="Re-enter password" 
+                        required
+                    >
+                    <button type="button" class="toggle-password" id="toggleConfirm">👁️</button>
+                </div>
+                <div id="confirm-error" class="error-msg"></div>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn" disabled>Create Account</button>
+
+            <div class="login-link">
+                Already have an account? <a href="{% url 'login_page' %}">Log in</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<script>
+    // Toggle password visibility
+    function setupToggle(inputId, btnId) {
+        const input = document.getElementById(inputId);
+        const btn = document.getElementById(btnId);
+        btn.addEventListener('click', () => {
+            const type = input.type === 'password' ? 'text' : 'password';
+            input.type = type;
+            btn.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+    }
+    setupToggle('password', 'togglePassword');
+    setupToggle('confirm_password', 'toggleConfirm');
+
+    // Validation logic
+    const passwordInput = document.getElementById('password');
+    const confirmInput  = document.getElementById('confirm_password');
+    const strengthDiv   = document.getElementById('password-strength');
+    const pwErrorDiv    = document.getElementById('password-error');
+    const confirmError  = document.getElementById('confirm-error');
+    const submitBtn     = document.getElementById('submitBtn');
+
+    function validateForm() {
+        const pw = passwordInput.value;
+        const cp = confirmInput.value;
+
+        // Password checks
+        const hasLength   = pw.length >= 8;
+        const hasUpper    = /[A-Z]/.test(pw);
+        const hasNumber   = /[0-9]/.test(pw);
+        const hasSpecial  = /[!@#$%^&*(),.?":{}|<>]/.test(pw);
+
+        const allValid = hasLength && hasUpper && hasNumber && hasSpecial;
+
+        // Strength calculation (for visual feedback)
+        let score = 0;
+        if (hasLength) score++;
+        if (hasUpper) score++;
+        if (hasNumber) score++;
+        if (hasSpecial) score++;
+
+        let strength = '';
+        let sClass = '';
+        if (pw.length === 0) {
+            strength = '';
+        } else if (score <= 1) {
+            strength = 'Weak';
+            sClass = 'weak';
+        } else if (score === 2) {
+            strength = 'Medium';
+            sClass = 'medium';
+        } else if (score === 3) {
+            strength = 'Strong';
+            sClass = 'strong';
+        } else if (score === 4) {
+            strength = 'Very Strong';
+            sClass = 'very-strong';
+        }
+
+        strengthDiv.textContent = strength;
+        strengthDiv.className = sClass;
+
+        // Error message for password requirements
+        if (pw.length > 0 && !allValid) {
+            let errors = [];
+            if (!hasLength)   errors.push("At least 8 characters");
+            if (!hasUpper)    errors.push("1 uppercase letter");
+            if (!hasNumber)   errors.push("1 number");
+            if (!hasSpecial)  errors.push("1 special character");
+
+            pwErrorDiv.textContent = "Missing: " + errors.join(", ");
+        } else {
+            pwErrorDiv.textContent = "";
+        }
+
+        // Confirm password match
+        if (cp.length > 0 && pw !== cp) {
+            confirmError.textContent = "Passwords do not match";
+        } else {
+            confirmError.textContent = "";
+        }
+
+        // Enable/disable submit button
+        submitBtn.disabled = !(allValid && pw === cp && pw.length > 0);
+    }
+
+    passwordInput.addEventListener('input', validateForm);
+    confirmInput.addEventListener('input', validateForm);
+
+    // Initial check
+    validateForm();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>File Manager</title>
+
+  {% load static %}
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    .fade-in { animation: fadeIn 0.5s ease-in-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .card-hover { transition: transform .2s, box-shadow .2s; }
+    .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,.1); }
+  </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+<!-- NAVBAR -->
+<nav class="bg-cyan-400 text-white p-4 flex justify-between items-center sticky top-0 z-50">
+  <img src="{% static 'images/logo1.png' %}" class="h-10">
+  <div class="flex gap-6 items-center">
+    <span>{{ request.user.username }}</span>
+    <a href="{% url 'logout' %}" class="font-semibold">Logout</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="bg-cyan-50 py-16 text-center">
+  <h1 class="text-4xl font-extrabold text-cyan-700 mb-4">Welcome to TopComputers</h1>
+  <p class="text-gray-600 max-w-2xl mx-auto">
+    Upload, manage and download files securely with blazing fast Wasabi storage.
+  </p>
+</section>
+
+<!-- MAIN -->
+<div class="max-w-7xl mx-auto p-6">
+
+  <!-- SEARCH -->
+  <input id="search" type="text"
+         placeholder="Search files..."
+         class="w-full p-4 rounded-xl shadow mb-6">
+
+  <!-- UPLOAD -->
+  {% if request.user.is_staff %}
+  <form id="fileUploadForm" enctype="multipart/form-data"
+        class="bg-white p-6 rounded-xl shadow mb-8">
+    {% csrf_token %}
+    <input name="title" placeholder="Title" required class="w-full mb-3 p-3 border rounded">
+    <textarea name="description" placeholder="Description" class="w-full mb-3 p-3 border rounded"></textarea>
+    <input type="file" name="file" required class="w-full mb-3">
+    <button class="bg-cyan-600 text-white px-6 py-2 rounded">Upload</button>
+  </form>
+  {% endif %}
+
+  <!-- FILE LIST -->
+  <div id="loading" class="hidden text-center py-10">Loading...</div>
+  <div id="noFiles" class="hidden text-center py-10 text-gray-500">No files found</div>
+
+  <div id="fileList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+</div>
+
+<!-- ABOUT -->
+<section class="bg-white py-16 fade-in">
+  <div class="max-w-6xl mx-auto px-4">
+    <h2 class="text-3xl font-bold mb-6 text-center text-cyan-700">About Us</h2>
+    <p class="text-gray-600 mb-4 text-center max-w-3xl mx-auto">
+      TOP COMPUTER is your one-stop shop for all your computing needs in Rahim Yar Khan. We specialize in sales and repairing of all models of laptops, desktops, and LCDs. Our expert services also include BIOS programming, software installation, and CCTV setup.
+    </p>
+    <p class="text-gray-600 mb-8 text-center">
+      Owned and operated by Basharat Hassan.
+    </p>
+
+    <!-- CONTACT SECTION WITH IMAGE AND FORM -->
+    <div class="flex flex-col md:flex-row justify-between items-start gap-8">
+      <div class="md:w-1/2">
+        <img src="https://bizup.com.au/wp/wp-content/uploads/2025/10/computer-repairs-murray-bridge-1024x683.png" alt="Computer Repair Shop" class="w-full h-auto rounded-lg shadow-md">
+      </div>
+      <div class="md:w-1/2">
+        <h3 class="text-2xl font-bold mb-4 text-center md:text-left text-cyan-700">Contact Us</h3>
+        {% if messages %}
+        <div class="mb-4">
+          {% for message in messages %}
+          <div class="mb-3 p-3 rounded-lg font-medium
+            {% if 'error' in message.tags %}bg-red-100 text-red-700
+            {% elif 'success' in message.tags %}bg-green-100 text-green-700
+            {% else %}bg-blue-100 text-blue-700{% endif %}">
+            {{ message }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <form class="bg-gray-50 p-6 rounded-xl shadow-md" action="{% url 'contact_submit' %}" method="post">
+          {% csrf_token %}
+          <input name="name" placeholder="Your Name" required class="w-full mb-3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+          <input name="email" type="email" placeholder="Your Email" required class="w-full mb-3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+          <input name="subject" placeholder="Subject" required class="w-full mb-3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+          <input name="phone" type="tel" placeholder="Your Phone (optional)" class="w-full mb-3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+          <textarea name="message" placeholder="Your Message" required class="w-full mb-3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 h-32"></textarea>
+          <button type="submit" class="bg-cyan-600 text-white px-6 py-2 rounded-lg w-full hover:bg-cyan-700 transition-colors">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-gray-800 text-white py-8">
+  <div class="max-w-6xl mx-auto px-4">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+      <div class="text-center md:text-left mb-6 md:mb-0">
+        <h4 class="text-xl font-bold mb-3">TOP COMPUTER</h4>
+        <p class="text-gray-300">
+          <a href="https://www.google.com/maps/search/?api=1&query=Firdous+Market,+Shahi+Road,+Rahim+Yar+Khan,+Pakistan" target="_blank" rel="noopener noreferrer" class="hover:text-cyan-300 transition-colors">
+            Firdous Market Shop# 10, Street No.1, R.Y.Khan
+          </a>
+        </p>
+      </div>
+      <div class="text-center md:text-right">
+        <h4 class="text-xl font-bold mb-3">Contact</h4>
+        <ul class="space-y-2">
+          <li>
+            <a href="https://wa.me/923030332501" target="_blank" rel="noopener noreferrer" class="hover:text-cyan-300 transition-colors">0303-0332501 (WhatsApp)</a>
+          </li>
+        </ul>
+        
+      </div>
+    </div>
+    <div class="border-t border-gray-600 pt-4 text-center text-sm text-gray-400">
+      © 2026 TOP COMPUTER — All rights reserved
+    </div>
+  </div>
+</footer>
+
+<!-- ================= JS ================= -->
+<script>
+const fileList = document.getElementById("fileList");
+const searchInput = document.getElementById("search");
+const loading = document.getElementById("loading");
+const noFiles = document.getElementById("noFiles");
+
+let allFiles = [];
+
+/* 🔥 FIXED FETCH */
+async function fetchFiles() {
+  loading.classList.remove("hidden");
+  try {
+    const response = await fetch("{% url 'storedfile-list-create' %}");
+    const data = await response.json();
+
+    const files = Array.isArray(data) ? data : (data.files || []);
+    allFiles = files.filter(f => f.title);
+
+    displayFiles(allFiles);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load files");
+  } finally {
+    loading.classList.add("hidden");
+  }
+}
+
+function displayFiles(files) {
+  const term = searchInput.value.toLowerCase();
+  const filtered = files.filter(f =>
+    f.title.toLowerCase().includes(term)
+  );
+
+  fileList.innerHTML = "";
+  if (!filtered.length) {
+    noFiles.classList.remove("hidden");
+    return;
+  }
+  noFiles.classList.add("hidden");
+
+  filtered.forEach(f => {
+    const card = document.createElement("div");
+    card.className = "bg-white p-4 rounded-xl shadow card-hover";
+
+    const preview = f.is_image
+      ? `<img src="${f.file_url}" class="h-40 w-full object-cover rounded mb-3">`
+      : `<div class="h-40 bg-gray-300 flex items-center justify-center rounded mb-3 text-3xl">📄</div>`;
+
+    card.innerHTML = `
+      ${preview}
+      <h3 class="font-bold mb-1 text-center">${f.title}</h3>
+      <p class="text-sm text-gray-600 mb-2 text-center">
+        ${f.description || "No description"}
+      </p>
+      <div class="text-xs text-gray-500 mb-3 text-center">
+        ${f.file_type} · ${f.file_size_mb} MB
+      </div>
+      <!-- ❤️ 💬 ACTIONS -->
+      <div class="flex justify-center gap-4 mb-3">
+        <button
+          onclick="event.stopPropagation(); likeFile(${f.id}, this)"
+          class="flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-lg hover:bg-red-100 transition"
+        >
+          ❤️ <span class="like-count">${f.likes_count || 0}</span>
+        </button>
+        <a
+  href="/file/${f.id}/"
+  onclick="event.stopPropagation()"
+  class="flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-lg hover:bg-blue-100 transition"
+>
+  💬 ${f.comments_count || 0}
+</a>
+      </div>
+      <a
+        href="${f.file_url}&response-content-disposition=attachment"
+        onclick="event.stopPropagation()"
+        class="block bg-cyan-400 text-white text-center py-2 rounded"
+      >
+         Download
+      </a>
+    `;
+    fileList.appendChild(card);
+  });
+}
+
+searchInput.addEventListener("input", () => displayFiles(allFiles));
+
+/* UPLOAD */
+const uploadForm = document.getElementById("fileUploadForm");
+if (uploadForm) {
+  uploadForm.addEventListener("submit", async e => {
+    e.preventDefault();
+    const formData = new FormData(uploadForm);
+    loading.classList.remove("hidden");
+
+    try {
+      const res = await fetch("{% url 'storedfile-list-create' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+        body: formData
+      });
+      if (!res.ok) {
+        alert("Upload failed");
+        return;
+      }
+      uploadForm.reset();
+      fetchFiles();
+    } finally {
+      loading.classList.add("hidden");
+    }
+  });
+}
+
+async function likeFile(fileId, btn) {
+  try {
+    const response = await fetch(`/like/${fileId}/`, {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": getCookie("csrftoken"),
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+    const data = await response.json();
+    if (data.success) {
+      btn.querySelector(".like-count").innerText = data.likes_count;
+    }
+  } catch (err) {
+    console.error("Like error:", err);
+    alert("Failed to like file");
+  }
+}
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+fetchFiles();
+</script>
+
+</body>
+</html>

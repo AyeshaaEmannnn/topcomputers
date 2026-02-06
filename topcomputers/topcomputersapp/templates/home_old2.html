@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>File Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/heroicons@2.0.18/24/outline/index.js" defer></script>
+  {% load static %}
+  <style>
+    .fade-in { animation: fadeIn 0.5s ease-in-out; }
+    @keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+  .nav-link {
+    @apply text-white text-lg transition-all duration-300;
+  }
+  .nav-link:hover {
+    color: #d5f3ff;         /* Light cyan */
+    transform: translateY(-3px); /* Move up slightly */
+  }
+</style>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
+
+<!-- Navigation Bar -->
+<nav class="bg-gradient-to-r from-cyan-400 to-cyan-500 h-16 flex items-center px-4">
+  <div class="flex justify-between items-center w-full">
+    <!-- Logo without white background -->
+    <img src="{% static 'images/logo1.png' %}" alt="TopComputers Logo" class="h-12 md:h-16 object-contain">
+
+    <!-- Desktop menu -->
+    <div class="hidden md:flex space-x-6 flex-1 justify-center">
+      <a href="#" class="text-white hover:text-cyan-200 transition duration-200">Home</a>
+      <a href="#" class="text-white hover:text-cyan-200 transition duration-200">Files</a>
+      <a href="#" class="text-white hover:text-cyan-200 transition duration-200">About</a>
+    </div>
+    
+    <!-- User Menu -->
+    <div class="flex items-center space-x-4">
+      <span class="text-white hidden md:inline">Hello, {{ request.user.first_name|default:request.user.username }}</span>
+      <a href="{% url 'logout' %}" class="text-white hover:text-cyan-200 transition duration-200 font-semibold">Logout</a>
+    </div>
+
+    <!-- Mobile menu button -->
+    <div class="md:hidden">
+      <button id="menuToggle" class="text-white focus:outline-none">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+
+<div id="mobileMenu" class="md:hidden hidden bg-cyan-700 px-6 py-4">
+  <a href="#" class="block text-white py-2 hover:text-cyan-200">Home</a>
+  <a href="#" class="block text-white py-2 hover:text-cyan-200">Files</a>
+  <a href="#" class="block text-white py-2 hover:text-cyan-200">About</a>
+  <hr class="my-4 border-cyan-600">
+  <span class="block text-white py-2">{{ request.user.first_name|default:request.user.username }}</span>
+  <a href="{% url 'logout' %}" class="block text-white py-2 hover:text-cyan-200 font-semibold">Logout</a>
+</div>
+
+<div class="max-w-7xl mx-auto p-6">
+  {% if messages %}
+  <div class="mb-6">
+    {% for message in messages %}
+    <div class="p-4 rounded-lg font-medium {% if message.tags %}{% if 'error' in message.tags %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}{% else %}bg-blue-100 text-blue-700{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  
+  <header class="text-center mb-8">
+    <h1 class="text-4xl font-extrabold text-cyan-800 mb-2">📁 File Manager</h1>
+    <p class="text-cyan-600">Manage and download your files effortlessly</p>
+  </header>
+
+  <!-- Search Bar -->
+  <div class="mb-6">
+    <div class="relative">
+      <input id="search" type="text" placeholder="Search files by title..."
+             class="w-full p-4 pl-12 border-0 rounded-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-300 bg-white text-gray-700 placeholder-gray-400"/>
+      <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Admin Upload Form -->
+  {% if request.user.is_staff %}
+  <div id="uploadForm" class="mb-8 p-6 bg-white rounded-xl shadow-xl fade-in">
+    <h2 class="text-2xl font-semibold mb-6 text-cyan-800 flex items-center">
+      <svg class="w-6 h-6 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+      </svg>
+      Upload New File
+    </h2>
+    <form id="fileUploadForm" method="POST" enctype="multipart/form-data" class="space-y-6">
+      {% csrf_token %}
+      <div>
+        <label for="title" class="block text-sm font-medium text-gray-700 mb-2">File Title</label>
+        <input type="text" id="title" name="title" placeholder="Enter file title" required
+               class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"/>
+      </div>
+      <div>
+        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+        <textarea id="description" name="description" placeholder="Add a description" rows="3"
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"></textarea>
+      </div>
+      <div>
+        <label for="fileInput" class="block text-sm font-medium text-gray-700 mb-2">Select File</label>
+        <input type="file" id="fileInput" name="file" required
+               class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100"/>
+      </div>
+      <button type="submit" class="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-300 font-semibold transition duration-200">
+        Upload File
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- File List -->
+  <div id="fileList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+  <div id="loading" class="hidden flex justify-center items-center py-12">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
+  </div>
+  <div id="noFiles" class="hidden text-center py-12">
+    <p class="text-cyan-500 text-lg">No files found. Try uploading some!</p>
+  </div>
+
+  <!-- Contact Section -->
+  <div class="mt-16 pt-12 border-t-2 border-gray-300">
+    <h2 class="text-3xl font-extrabold text-cyan-800 mb-8 text-center">📧 Contact Us</h2>
+    <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-xl p-8">
+      <form method="POST" action="{% url 'contact_submit' %}">
+        {% csrf_token %}
+        <div class="space-y-6">
+          <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+            {{ contact_form.name }}
+          </div>
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            {{ contact_form.email }}
+          </div>
+          <div>
+            <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+            {{ contact_form.subject }}
+          </div>
+          <div>
+            <label for="message" class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+            {{ contact_form.message }}
+          </div>
+          <button type="submit" class="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-300 font-semibold transition duration-200">
+            Send Message
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const menuToggle = document.getElementById('menuToggle');
+const mobileMenu = document.getElementById('mobileMenu');
+menuToggle.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+
+const fileList = document.getElementById("fileList");
+const searchInput = document.getElementById("search");
+const loading = document.getElementById("loading");
+const noFiles = document.getElementById("noFiles");
+
+let allFiles = [];
+
+// Fetch fresh signed URLs from Django API
+async function fetchFiles() {
+    loading.classList.remove("hidden");
+    try {
+        const response = await fetch("{% url 'get_files_api' %}");
+        const data = await response.json();
+        allFiles = data.files.filter(f => f.title);  // skip folder placeholders
+        displayFiles(allFiles);
+    } catch (err) {
+        console.error(err);
+        alert("Failed to load files.");
+    } finally {
+        loading.classList.add("hidden");
+    }
+}
+
+// Like file function
+async function likeFile(fileId, button) {
+    try {
+        const response = await fetch(`/like/${fileId}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        const data = await response.json();
+        if (data.success) {
+            const likesSpan = button.querySelector('.likes-count');
+            likesSpan.textContent = data.likes_count;
+            button.classList.toggle('bg-red-100 text-red-600', data.liked);
+            button.classList.toggle('bg-gray-100 text-gray-600', !data.liked);
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+// Display files on the page
+function displayFiles(filesToDisplay) {
+    const searchTerm = searchInput.value.toLowerCase();
+    const filtered = filesToDisplay.filter(f => f.title.toLowerCase().includes(searchTerm));
+    fileList.innerHTML = "";
+    if (filtered.length === 0) { noFiles.classList.remove("hidden"); return; }
+    noFiles.classList.add("hidden");
+
+    filtered.forEach(f => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl shadow-lg p-6 flex flex-col items-center fade-in card-hover";
+
+        // Preview
+        const preview = f.is_image
+            ? `<img src="${f.file_url}" class="w-32 h-32 object-cover mb-4 rounded-lg shadow-md" alt="${f.title}"/>`
+            : `<div class="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center mb-4 shadow-md"><span class="text-3xl">📄</span></div>`;
+
+        card.innerHTML = `
+            ${preview}
+            <h3 class="font-bold text-lg text-gray-800 mb-2 text-center">${f.title}</h3>
+            <p class="text-sm text-gray-600 mb-4 text-center">${f.description || "No description"}</p>
+            <div class="text-xs text-gray-500 mb-4 text-center">
+              <span class="inline-block bg-gray-100 px-2 py-1 rounded-full mr-2">${f.file_type}</span>
+              <span class="inline-block bg-gray-100 px-2 py-1 rounded-full">${f.file_size_mb} MB</span>
+            </div>
+            <div class="flex gap-2 mb-4 w-full justify-center">
+                <button class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 transition duration-200" onclick="likeFile(${f.id}, this)">
+                  ❤️ <span class="likes-count">${f.likes_count || 0}</span>
+                </button>
+                <span class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg">
+                  💬 <span>${f.comments_count || 0}</span>
+                </span>
+            </div>
+            <div class="flex gap-2 w-full">
+                <a href="${f.file_url}&response-content-disposition=attachment"
+                   download="${f.title}${f.file_extension || ''}"
+                   class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 focus:outline-none focus:ring-4 focus:ring-green-300 font-semibold transition duration-200">
+                  Download
+                </a>
+        
+            </div>
+        `;
+
+        fileList.appendChild(card);
+    });
+}
+
+// Search functionality
+searchInput.addEventListener('input', () => displayFiles(allFiles));
+
+// Initial fetch
+fetchFiles();
+
+// Dynamic upload without page reload
+const uploadForm = document.getElementById('fileUploadForm');
+if (uploadForm) {
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(uploadForm);
+        loading.classList.remove("hidden");
+        try {
+            const response = await fetch("{% url 'storedfile-list-create' %}", {
+                method: "POST",
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok) {
+                alert("File uploaded successfully!");
+                uploadForm.reset();
+                fetchFiles(); // Refresh list
+            } else {
+                alert(data.error || JSON.stringify(data));
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Upload failed, check console.");
+        } finally {
+            loading.classList.add("hidden");
+        }
+    });
+}
+</script>
+
+</body>
+</html>
