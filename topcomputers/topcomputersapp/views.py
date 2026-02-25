@@ -23,10 +23,13 @@ from .utils import get_files_with_signed_urls
 # =========================
 # HOME PAGE
 # =========================
-@login_required(login_url='login_page')
+# allow anonymous users to view file list, but only authenticated staff can upload
+
 def home_view(request):
+    form = StoredFileForm()  # default empty, only used if upload allowed
+
     if request.method == "POST":
-        if not request.user.is_staff:
+        if not request.user.is_authenticated or not request.user.is_staff:
             return JsonResponse(
                 {"error": "Only admins can upload files."},
                 status=403
@@ -39,10 +42,11 @@ def home_view(request):
             return redirect("/home/")
         else:
             messages.error(request, "Failed to upload file.")
-    else:
-        form = StoredFileForm()
 
     contact_form = ContactForm()
+
+    # fetch all files to show to anonymous users as well
+    files = StoredFile.objects.all().order_by("-uploaded_at")
 
     return render(
         request,
@@ -50,6 +54,7 @@ def home_view(request):
         {
             "form": form,
             "contact_form": contact_form,
+            "files": files,
         }
     )
 
@@ -160,7 +165,6 @@ def add_comment(request, file_id):
 # =========================
 # FILE DETAIL
 # =========================
-@login_required(login_url='login_page')
 def file_detail(request, file_id):
     file_obj = get_object_or_404(StoredFile, id=file_id)
     comments = file_obj.comments.filter(
@@ -168,7 +172,7 @@ def file_detail(request, file_id):
     ).order_by('-created_at')
 
     comment_form = FileCommentForm()
-    user_liked = request.user in file_obj.liked_by.all()
+    user_liked = request.user in file_obj.liked_by.all() if request.user.is_authenticated else False
 
     return render(
         request,

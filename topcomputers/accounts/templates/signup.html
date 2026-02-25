@@ -152,7 +152,8 @@
 <main>
     <div class="card">
         <h1>Sign up</h1>
-        <div class="subtitle">Create your account</div>
+        <div class="subtitle">Registration is currently disabled.</div>
+        <p class="subtitle">Please <a href="{% url 'login_page' %}" class="text-blue-600 underline">login</a> or contact the administrator for access.</p>
 
         {% if messages %}
         <div style="margin-bottom: 1.5rem;">
@@ -163,99 +164,10 @@
             {% endfor %}
         </div>
         {% endif %}
-
-        <form method="POST" id="signupForm" action="{% url 'signup_user' %}">
-            {% csrf_token %}
-
-            <div class="form-group">
-                <label for="first_name">Full Name</label>
-                <input type="text" id="first_name" name="first_name" placeholder="Enter your full name" required autocomplete="name">
-            </div>
-
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
-            </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="password-wrapper">
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        placeholder="Minimum 8 characters"
-                        required 
-                        autocomplete="new-password"
-                    >
-                    <button type="button" class="toggle-password" id="togglePassword">👁️</button>
-                </div>
-
-                <div id="password-strength"></div>
-                <div id="password-error" class="error-msg"></div>
-
-                <div class="requirements">
-                    Must contain:<br>
-                    • 8+ characters<br>
-                    • 1 uppercase letter<br>
-                    • 1 number<br>
-                    • 1 special character (!@#$%^&*)
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="confirm_password">Confirm Password</label>
-                <div class="password-wrapper">
-                    <input 
-                        type="password" 
-                        id="confirm_password" 
-                        name="confirm_password" 
-                        placeholder="Re-enter password" 
-                        required
-                    >
-                    <button type="button" class="toggle-password" id="toggleConfirm">👁️</button>
-                </div>
-                <div id="confirm-error" class="error-msg"></div>
-            </div>
-
-            <button type="submit" class="btn" id="submitBtn" disabled>Create Account</button>
-
-            <div class="login-link">
-                Already have an account? <a href="{% url 'login_page' %}">Log in</a>
-            </div>
-        </form>
     </div>
 </main>
-
-<script>
-    // Toggle password visibility
-    function setupToggle(inputId, btnId) {
-        const input = document.getElementById(inputId);
-        const btn = document.getElementById(btnId);
-        btn.addEventListener('click', () => {
-            const type = input.type === 'password' ? 'text' : 'password';
-            input.type = type;
-            btn.textContent = type === 'password' ? '👁️' : '🙈';
-        });
-    }
-    setupToggle('password', 'togglePassword');
-    setupToggle('confirm_password', 'toggleConfirm');
-
-    // Validation logic
-    const passwordInput = document.getElementById('password');
-    const confirmInput  = document.getElementById('confirm_password');
-    const strengthDiv   = document.getElementById('password-strength');
-    const pwErrorDiv    = document.getElementById('password-error');
-    const confirmError  = document.getElementById('confirm-error');
-    const submitBtn     = document.getElementById('submitBtn');
-
-    function validateForm() {
-        const pw = passwordInput.value;
-        const cp = confirmInput.value;
-
-        // Password checks
-        const hasLength   = pw.length >= 8;
-        const hasUpper    = /[A-Z]/.test(pw);
+</body>
+</html>
         const hasNumber   = /[0-9]/.test(pw);
         const hasSpecial  = /[!@#$%^&*(),.?":{}|<>]/.test(pw);
 

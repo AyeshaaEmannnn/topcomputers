@@ -21,13 +21,15 @@
 
     <div class="hidden md:flex space-x-6 flex-1 justify-center">
       <a href="/home/" class="text-white transition hover:-translate-y-0.5 hover:text-cyan-200">Home</a>
-      <a href="/home/#files" class="text-white transition hover:-translate-y-0.5 hover:text-cyan-200">Files</a>
-      <a href="/home/#about" class="text-white transition hover:-translate-y-0.5 hover:text-cyan-200">About</a>
     </div>
 
     <div class="flex items-center space-x-4">
-      <span class="text-white hidden md:inline">Hello, {{ request.user.first_name|default:request.user.username }}</span>
-      <a href="{% url 'logout' %}" class="text-white font-semibold hover:text-cyan-200">Logout</a>
+      {% if request.user.is_authenticated %}
+        <span class="text-white hidden md:inline">Hello, {{ request.user.first_name|default:request.user.username }}</span>
+        <a href="{% url 'logout' %}" class="text-white font-semibold hover:text-cyan-200">Logout</a>
+      {% else %}
+        <a href="{% url 'login_page' %}" class="text-white font-semibold hover:text-cyan-200">Dashboard</a>
+      {% endif %}
     </div>
   </div>
 </nav>
@@ -94,11 +96,15 @@
         </div>
 
         <!-- LIKE BUTTON -->
+        {% if request.user.is_authenticated %}
         <button data-file-id="{{ file.id }}" onclick="likeFile(this)"
           class="px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2
           {% if user_liked %}bg-red-100 text-red-600{% else %}bg-gray-100 text-gray-600{% endif %}">
           ❤️ {% if user_liked %}Unlike{% else %}Like{% endif %}
         </button>
+        {% else %}
+        <p class="text-sm text-gray-500">Login to like this file</p>
+        {% endif %}
 
         <!-- DESCRIPTION -->
         {% if file.description %}
@@ -121,6 +127,7 @@
           <h2 class="text-2xl font-bold mb-6">💬 Comments ({{ comments.count }})</h2>
 
           <!-- ADD COMMENT -->
+          {% if request.user.is_authenticated %}
           <form method="POST" action="{% url 'add_comment' file.id %}" class="mb-8 bg-gray-50 p-6 rounded-lg">
             {% csrf_token %}
             <textarea name="comment_text" placeholder="Write a comment..." rows="4" required
@@ -129,6 +136,9 @@
               Post Comment
             </button>
           </form>
+          {% else %}
+          <p class="text-sm text-gray-500 mb-8">Login to post comments.</p>
+          {% endif %}
 
           <!-- COMMENT LIST -->
           <div class="space-y-4">

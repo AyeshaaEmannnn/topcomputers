@@ -22,7 +22,8 @@ from topcomputersapp.views import home_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', RedirectView.as_view(url='login/', permanent=False)),
+    # direct root to home listing (public view)
+    path('', RedirectView.as_view(url='home/', permanent=False)),
     path('home/', home_view, name='home'),
     path('', include('topcomputersapp.urls')),
     path('', include('accounts.urls')),
